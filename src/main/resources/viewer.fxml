@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="be.aaronengler.cptviewer.CopilotToolViewerController"
+      spacing="8.0"
+      styleClass="viewer-root">
+    <padding>
+        <Insets top="12.0" right="12.0" bottom="12.0" left="12.0"/>
+    </padding>
+
+    <HBox alignment="CENTER_LEFT" spacing="8.0" styleClass="viewer-header">
+        <Label fx:id="fileNameLabel" text="File: searching..." styleClass="viewer-label"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="clearSelectionButton" id="clear-selection-button" text="Clear selection"/>
+        <CheckBox fx:id="darkModeToggle" text="Dark mode" styleClass="viewer-toggle"/>
+    </HBox>
+
+    <Label fx:id="createdLabel" text="Created: -" styleClass="viewer-label"/>
+    <Label fx:id="modifiedLabel" text="Modified: -" styleClass="viewer-label"/>
+    <Label fx:id="statusLabel" text="Status: waiting for matching files" styleClass="viewer-label"/>
+
+    <SplitPane fx:id="outputPane" orientation="VERTICAL" styleClass="output-pane" VBox.vgrow="ALWAYS">
+        <items>
+            <ListView fx:id="outputList" id="output-list"/>
+            <TextArea fx:id="selectionArea"
+                      id="selection-area"
+                      prefRowCount="8"
+                      promptText="Select one or more lines above to inspect and copy partial text."/>
+        </items>
+    </SplitPane>
+</VBox>
