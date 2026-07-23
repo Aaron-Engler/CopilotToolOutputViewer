@@ -14,11 +14,15 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TextArea;
+import javafx.scene.Node;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.VBox;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -75,17 +79,27 @@ public final class CopilotToolViewerController {
     @FXML
     private TextArea selectionArea;
 
+    @FXML
+    private VBox viewerRoot;
+
     private ScheduledExecutorService scheduler;
     private FileSnapshot lastSnapshot;
+    private int dragAnchorIndex = -1;
+    private boolean dragSelecting;
 
     @FXML
     private void initialize() {
         outputList.setFocusTraversable(true);
         outputList.setFixedCellSize(20);
         outputList.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        outputList.getProperties().put(CopilotToolViewerController.class, this);
         outputList.getSelectionModel().getSelectedItems().addListener((ListChangeListener<String>) ignored ->
                 syncSelectionArea());
         outputList.setCellFactory(ignored -> new OutputLineCell());
+        viewerRoot.addEventFilter(MouseEvent.MOUSE_PRESSED, this::handleRootMousePressed);
+        outputList.addEventFilter(MouseEvent.MOUSE_PRESSED, this::handleOutputListMousePressed);
+        outputList.addEventFilter(MouseEvent.MOUSE_DRAGGED, this::handleOutputListMouseDragged);
+        outputList.addEventFilter(MouseEvent.MOUSE_RELEASED, ignored -> finishDragSelection());
         outputList.setOnKeyPressed(event -> {
             if (COPY_KEY_COMBINATION.match(event)) {
                 copySelectedLines();
@@ -261,6 +275,108 @@ public final class CopilotToolViewerController {
         ClipboardContent clipboardContent = new ClipboardContent();
         clipboardContent.putString(String.join(System.lineSeparator(), selectedLines));
         Clipboard.getSystemClipboard().setContent(clipboardContent);
+    }
+
+    private void beginDragSelection(int index) {
+        dragAnchorIndex = index;
+        dragSelecting = true;
+        updateDragSelection(index);
+    }
+
+    private void handleOutputListMousePressed(MouseEvent event) {
+        if (event.getButton() != MouseButton.PRIMARY
+                || event.isShiftDown()
+                || event.isControlDown()
+                || event.isMetaDown()) {
+            return;
+        }
+
+        int index = findCellIndex(event.getPickResult().getIntersectedNode());
+        if (index < 0) {
+            return;
+        }
+
+        beginDragSelection(index);
+    }
+
+    private void handleOutputListMouseDragged(MouseEvent event) {
+        if (!dragSelecting) {
+            return;
+        }
+
+        int index = findCellIndex(event.getPickResult().getIntersectedNode());
+        if (index < 0) {
+            return;
+        }
+
+        updateDragSelection(index);
+        event.consume();
+    }
+
+    private void handleRootMousePressed(MouseEvent event) {
+        if (event.getButton() != MouseButton.PRIMARY) {
+            return;
+        }
+
+        Node target = event.getPickResult().getIntersectedNode();
+        if (isDescendantOf(target, outputList)
+                || isDescendantOf(target, selectionArea)
+                || isDescendantOf(target, darkModeToggle)
+                || isSplitPaneDivider(target)) {
+            return;
+        }
+
+        clearSelection();
+    }
+
+    private void updateDragSelection(int index) {
+        if (!dragSelecting || index < 0) {
+            return;
+        }
+
+        int start = Math.min(dragAnchorIndex, index);
+        int end = Math.max(dragAnchorIndex, index);
+        outputList.getSelectionModel().clearSelection();
+        outputList.getSelectionModel().selectRange(start, end + 1);
+        outputList.getFocusModel().focus(index);
+    }
+
+    private void finishDragSelection() {
+        dragSelecting = false;
+        dragAnchorIndex = -1;
+    }
+
+    private int findCellIndex(Node node) {
+        Node current = node;
+        while (current != null) {
+            if (current instanceof ListCell<?> cell) {
+                return cell.isEmpty() ? -1 : cell.getIndex();
+            }
+            current = current.getParent();
+        }
+        return -1;
+    }
+
+    private boolean isDescendantOf(Node node, Node ancestor) {
+        Node current = node;
+        while (current != null) {
+            if (current == ancestor) {
+                return true;
+            }
+            current = current.getParent();
+        }
+        return false;
+    }
+
+    private boolean isSplitPaneDivider(Node node) {
+        Node current = node;
+        while (current != null) {
+            if (current.getStyleClass().contains("split-pane-divider")) {
+                return true;
+            }
+            current = current.getParent();
+        }
+        return false;
     }
 
     private String formatTime(FileTime time) {
