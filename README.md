@@ -23,8 +23,12 @@ The viewer is intended for local debugging and inspection of tool output without
 - Updates automatically when the file content changes
 - Removes leading `<absolute-path>:<line>:` prefixes from displayed lines
 - Lets you select one or more lines and mirrors them into a read-only text area below
+- Supports single-click row selection, `Shift`-selection for ranges, and left-button drag selection across rows
 - Pauses list updates while lines are selected so inspection and copying stay stable
 - Resumes auto-update when the selection is cleared
+- Keeps the current selection until you clear it with the button or by clicking outside the list and lower text area
+- Does not clear selection when you interact with the dark mode toggle or the split pane divider
+- Supports copying selected rows with `Ctrl+C` or the list context menu
 - Supports light and dark mode
 - Uses `Consolas` for the output controls with a generic `monospace` fallback
 
@@ -75,3 +79,4 @@ The repository includes a GitHub Actions workflow at `.github/workflows/release.
 - The app reads from the system temp directory defined by `java.io.tmpdir`.
 - No file contents are modified; the viewer is read-only.
 - The lower text area is intended for partial text selection and copy after selecting rows in the main list.
+- The main list copies whole selected rows; the lower text area is for finer-grained text selection within that captured subset.
